@@ -1,0 +1,127 @@
+version: "3.3"
+services:
+  proxy:
+    build:
+      context: ./proxy
+    image: fandijunerry/proxy-custom:latest
+    #restart: always
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    networks:
+      - ext_net
+      - proxy_net
+
+  web-app:
+    build:
+      context: ./myweb-app
+    image: fandijunerry/web-custom:latest
+    #restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    networks:
+      - proxy_net
+      - int_net
+
+  pma:
+    build:
+      context: ./pma
+    image: fandijunerry/pma-custom:latest
+    #restart: always
+    depends_on:
+      - mysql
+    environment:
+      DATABASE_HOST: mysql
+    volumes: 
+      - pma-data:/var/lib/phpmyadmin/data
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    networks:
+      - proxy_net
+      - int_net  
+  
+  mysql:
+    build:
+      context: ./mysql
+    image: fandijunerry/mysql-custom:latest
+    #restart: always
+    environment:
+      MYSQL_DATABASE_FILE: /run/secrets/db_name
+      MYSQL_USER_FILE: /run/secrets/db_user
+      MYSQL_PASSWORD_FILE: /run/secrets/db_pass
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root
+    secrets:
+      - db_name
+      - db_root
+      - db_user
+      - db_pass
+    volumes: 
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: "/etc/init.d/mysql status"
+      interval: 1s
+      retries: 120
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    networks:
+      - int_net
+
+volumes:
+  mysql-data:
+  pma-data:
+
+networks:
+  int_net:
+    driver: overlay
+    attachable: true
+  proxy_net:
+    driver: overlay
+    attachable: true
+  ext_net:
+    driver: overlay
+    attachable: true
+  
+secrets:
+  db_name:
+    file: ./db_name.txt
+  db_root:
+    file: ./db_root.txt  
+  db_user:
+    file: ./db_user.txt
+  db_pass:
+    file: ./db_pass.txt
