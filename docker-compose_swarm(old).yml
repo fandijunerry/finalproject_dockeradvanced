@@ -73,14 +73,10 @@ services:
     image: fandijunerry/mysql-custom:latest
     #restart: always
     environment:
-      MYSQL_DATABASE: dbkuasai
-      MYSQL_USER: cilsykuasaiuser
-      MYSQL_PASSWORD: cilsykuasaipassword
-      MYSQL_ROOT_PASSWORD: fandijunerry2021
-      #MYSQL_DATABASE_FILE: /run/secrets/db_name
-      #MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root
-      #MYSQL_USER_FILE: /run/secrets/db_user
-      #MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_pass
+      MYSQL_DATABASE_FILE: /run/secrets/db_name
+      MYSQL_USER_FILE: /run/secrets/db_user
+      MYSQL_PASSWORD_FILE: /run/secrets/db_pass
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root
     secrets:
       - db_name
       - db_root
