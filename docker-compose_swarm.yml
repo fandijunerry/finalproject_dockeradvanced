@@ -28,6 +28,8 @@ services:
       context: ./myweb-app
     image: fandijunerry/web-custom:latest
     #restart: always
+    volumes:
+      - ./myweb-app/file-web:/var/www/html
     deploy:
       replicas: 1
       update_config:
