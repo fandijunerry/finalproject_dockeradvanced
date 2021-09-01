@@ -1,28 +1,5 @@
 version: "3.3"
 services:
-  proxy:
-    build:
-      context: ./proxy
-    image: fandijunerry/proxy-custom:latest
-    #restart: always
-    ports:
-      - '80:80'
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    deploy:
-      replicas: 1
-      update_config:
-        parallelism: 2
-        delay: 10s
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-    networks:
-      - ext_net
-      - proxy_net
-
   web-app:
     build:
       context: ./myweb-app
@@ -102,6 +79,29 @@ services:
         window: 120s
     networks:
       - int_net
+
+  proxy:
+    build:
+      context: ./proxy
+    image: fandijunerry/proxy-custom:latest
+    #restart: always
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    networks:
+      - ext_net
+      - proxy_net
 
 volumes:
   mysql-data:
