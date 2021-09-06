@@ -1,10 +1,9 @@
 version: "3.3"
 services:
   web-app:
-    build:
-      context: ./myweb-app
     image: fandijunerry/web-custom:latest
-    #restart: always
+    depends_on:
+      - mysql
     volumes:
       - ./myweb-app/file-web:/var/www/html
     deploy:
@@ -22,10 +21,7 @@ services:
       - int_net
 
   pma:
-    build:
-      context: ./pma
     image: fandijunerry/pma-custom:latest
-    #restart: always
     depends_on:
       - mysql
     environment:
@@ -47,10 +43,7 @@ services:
       - int_net  
   
   mysql:
-    build:
-      context: ./mysql
     image: fandijunerry/mysql-custom:latest
-    #restart: always
     environment:
       MYSQL_DATABASE_FILE: /run/secrets/db_name
       MYSQL_USER_FILE: /run/secrets/db_user
@@ -81,15 +74,16 @@ services:
       - int_net
 
   proxy:
-    build:
-      context: ./proxy
     image: fandijunerry/proxy-custom:latest
-    #restart: always
+    depends_on:
+      - web-app
+      - pma
     ports:
       - '80:80'
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     deploy:
+      mode: replicated
       placement:
         constraints: [node.platform.os == linux]
       replicas: 3
