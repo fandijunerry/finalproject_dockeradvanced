@@ -14,8 +14,6 @@ services:
       update_config:
         parallelism: 2
         delay: 10s
-      #restart_policy:
-        #condition: always
     networks:
       - ext_net
       - proxy_net
@@ -30,8 +28,6 @@ services:
       update_config:
         parallelism: 2
         delay: 10s
-      #restart_policy:
-        #condition: always
     networks:
       - proxy_net
       - int_net
@@ -44,8 +40,7 @@ services:
     depends_on:
       - mysql
     environment:
-      - PMA_ARBITRARY=1
-      - PMA_HOST=mysql
+      - DATABASE_HOST: mysql
     volumes: 
       - pma-data:/var/lib/phpmyadmin/data
     deploy:
@@ -53,8 +48,6 @@ services:
       update_config:
         parallelism: 2
         delay: 10s
-      #restart_policy:
-        #condition: always
     networks:
       - proxy_net
       - int_net  
@@ -65,11 +58,12 @@ services:
     image: fandijunerry/mysql-custom:latest
     restart: always
     environment: 
-      - MYSQL_DATABASE=dbkuasai
-      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root
-      - MYSQL_USER_FILE=/run/secrets/db_user
-      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_pass
+      - MYSQL_DATABASE_FILE: /run/secrets/db_name
+      - MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root
+      - MYSQL_USER_FILE: /run/secrets/db_user
+      - MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_pass
     secrets:
+      - db_name
       - db_root
       - db_user
       - db_pass
@@ -84,8 +78,6 @@ services:
       update_config:
         parallelism: 2
         delay: 10s
-      #restart_policy:
-        #condition: always
     networks:
       - int_net
 
@@ -105,6 +97,8 @@ networks:
     attachable: true
   
 secrets:
+  db_name:
+    file: ./db_name.txt
   db_root:
     file: ./db_root.txt  
   db_user:
