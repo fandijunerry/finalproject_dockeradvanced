@@ -1,0 +1,122 @@
+PREPARE INSTANCE, LB & HC pada GCP
+==================================
+
+1. Create 1 instance dengan OS debian 10
+2. Install application
+    - Docker
+	- Docker compose
+3. Create image dari disk
+4. Create instance template dari images yang telah dibuat
+5. Buat instance group
+	example_managed group:
+	Command pada Cloud Shell:
+		gcloud compute target-pools create fp-pool						< Region : us-central1
+
+		gcloud compute instance-groups managed create fp-group \
+		--base-instance-name fp-node \
+		--size 3 \
+		--region us-central1 \
+		--template fp-instance-template \
+		--target-pool fp-pool
+
+		gcloud compute instances list
+
+		gcloud compute firewall-rules create www-firewall --allow tcp:80
+
+
+DEPLOY FINAL PROJECT DI LOCAL
+=============================
+
+1. Copy seluruh file pada folder myweb-app
+2. Untuk melakukan build image, jalankan perintah 
+	docker-compose -f docker-compose.yml build
+3. Untuk deploy, jalankan dengan menggunakan perintah
+	docker-compose -f docker-compose.yml up -d
+4. Tambahkan konfigurasi file hosts dengan menambahkan line berikut
+	127.0.0.1 www.fandijunerry.local
+	127.0.0.1 pma.fandijunerry.local
+
+5. Buka aplikasi phpmyadmin pada browser dengan mengakses pma.fandijunerry.local dengan credential berikut:
+	Username: cilsykuasaiuser
+	Password: cilsykuasaipassword
+6. Buka Table dbkuasai dan lakukan import file dump.sql
+7. Akses www.fandijunerry.local dan buat akun kemudian coba login dengan akun yang telah dibuat
+8. Coba undeploy aplikasi dengan perintah berikut:
+	docker-compose down
+9. Pastikan semua container telah terhapus
+10. Deploy ulang aplikasi dengan menggunakan perintah
+	docker-compose -f docker-compose.yml up -d
+11. Coba akses kembali www.fandijunerry.local pada browser dengan menggunakan akun yang telah dbuat pada step ke 7
+12. Jika berhasil, berarti volume SQL masih tersimpan dengan baik
+
+
+DEPLOY FINAL PROJECT PADA SWARM (GCP)
+=====================================
+
+1. Copy seluruh file pada github ini
+	Command:
+	git clone https://github.com/fandijunerry/finalproject_dockeradvanced
+2. Masuk ke directory finalproject_dockeradvanced
+3. Pastikan Docker sudah terinstall dan swarm sudah berjalan
+4. Deploy aplikasi pada swarm dengan menggunakan perintah
+	docker stack deploy --compose-file docker-compose_swarm.yml myweb-app
+5. Lakukan pengeceken service sudah berjalan dengan perintah
+	docker service ls
+6. Buka aplikasi phpmyadmin pada browser dengan mengakses pma.fandijunerry.my.id dengan credential berikut:
+	Username: cilsykuasaiuser
+	Password: cilsykuasaipassword
+6. Buka Table dbkuasai dan lakukan import file dump.sql
+7. Akses www.fandijunerry.my.id, buat akun baru kemudian coba login dengan akun yang telah dibuat
+8. Coba undeploy aplikasi dengan perintah berikut:
+	docker stack rm myweb-app
+9. Pastikan semua service telah terhapus dengan melihat daftar service yang berjalan dengan perintah
+	docker service ls
+10. Deploy ulang aplikasi dengan menggunakan perintah
+	docker stack deploy --compose-file docker-compose_swarm.yml myweb-app
+11. Coba akses kembali www.fandijunerry.my.id pada browser dengan menggunakan akun yang telah dbuat pada step ke 7
+12. Jika berhasil, berarti volume SQL masih tersimpan dengan baik
+
+
+KONFIGURASI LOAD BALANCER DAN HEALTHCHECK PADA GCP
+==================================================
+
+NETWORK LOAD BALANCER (L2)
+--------------------------
+
+gcloud compute forwarding-rules create fp-lb \
+--region us-central1 \
+--ports=80 \
+--target-pool fp-pool
+
+gcloud compute forwarding-rules list
+
+
+HTTP(S) LOAD BALANCER (L7)
+--------------------------
+
+gcloud compute http-health-checks create http-basic-check
+
+gcloud compute instance-groups managed \
+set-named-ports fp-group \
+--named-ports http:80
+
+gcloud compute backend-services create fp-backend \
+--protocol HTTP --http-health-checks http-basic-check --global
+
+gcloud compute backend-services add-backend fp-backend \
+--instance-group fp-group \
+--instance-group-zone us-central1-a \
+--global
+
+gcloud compute url-maps create web-map \
+--default-service fp-backend
+
+gcloud compute target-http-proxies create http-lb-proxy \
+--url-map web-map
+
+gcloud compute forwarding-rules create http-content-rule \
+--global \
+--target-http-proxy http-lb-proxy \
+--ports 80
+
+gcloud compute forwarding-rules list
